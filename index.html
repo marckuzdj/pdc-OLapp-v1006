@@ -1039,116 +1039,129 @@ function executarCargaDefinitiva(conteudo, liberacao) {
 	        
 	        
 	        // ATUALIZE A FUNÇÃO DE CADASTRO COM VALIDAÇÃO PRÉVIA LOCAL
-			async function efetuarCadastro() {
-			    const nome = document.getElementById('cadNome').value.trim();
-			    const matricula = document.getElementById('cadMatricula').value.trim();
-			    const email = document.getElementById('cadEmail').value.trim();
-			    const ol = document.getElementById('cadOL').value; 
-			    const senha = document.getElementById('cadSenha').value.trim();
-			    const senhaRepete = document.getElementById('cadSenhaRepete').value.trim();
-			    const btnCadastrar = document.getElementById('btnCadastrar');
-			
-			    // 1. VALIDAÇÃO DE CAMPOS OPERACIONAIS OBRIGATÓRIOS
-			    if (!nome || !matricula || !email || !ol || !senha) {
-			        return exibirAviso('msgCad', 'Preencha todos os campos!', 'error');
-			    }
-			    if (senha !== senhaRepete) {
-			        return exibirAviso('msgCad', 'As senhas não coincidem!', 'error');
-			    }
-			
-			    // 🔐 INJEÇÃO CIRÚRGICA: VALIDAÇÃO DE COMPLEXIDADE CORPORATIVA DE SENHA
-			    // Regra rígida: Mínimo 8 caracteres, pelo menos 1 letra maiúscula e pelo menos 1 número
-			   // const regexComplexidade = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
-			   // if (!regexComplexidade.test(senha)) {
-			   //     return exibirAviso('msgCad', '🔒 Senha fraca! Use no mínimo 8 caracteres, incluindo pelo menos 1 letra maiúscula e 1 número.', 'error');
-			   // }
-   				// Substitua a linha da regex antiga por esta nova versão:
-				const regexComplexidade = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
-				if (!regexComplexidade.test(senha)) {
-				    return exibirAviso('msgCad', '🔒 Senha fraca! Use no mínimo 8 caracteres, incluindo pelo menos 1 letra maiúscula, 1 número e 1 caractere especial (Ex: @, #, $, !, %).', 'error');
-				}
+async function efetuarCadastro() {
+    const nome = document.getElementById('cadNome').value.trim();
+    const matricula = document.getElementById('cadMatricula').value.trim();
+    const email = document.getElementById('cadEmail').value.trim();
+    const ol = document.getElementById('cadOL').value; 
+    const senha = document.getElementById('cadSenha').value.trim();
+    const senhaRepete = document.getElementById('cadSenhaRepete').value.trim();
+    const btnCadastrar = document.getElementById('btnCadastrar');
 
-			    const modalId = document.getElementById('modalIdCad');
-			    const lblTexto = document.getElementById('lblTextoIdCad');
-			    const inputCodigo = document.getElementById('inputCodigoIdCad');
-			    const btnConfirmar = document.getElementById('btnConfirmarIdCad');
-			    const btnCancelar = document.getElementById('btnCancelarIdCad');
-			
-			    if (modalId && lblTexto && inputCodigo && btnConfirmar && btnCancelar) {
-			        
-			        lblTexto.textContent = 'Buscando chave de segurança para ' + ol + '...';
-			        inputCodigo.value = '';
-			        btnConfirmar.disabled = true; 
-			        modalId.style.display = 'flex';
-			
-			        let chaveEsperadaPlanilha = "";
-			        window.cbObterChaveReal = (res) => {
-			            if (res && res.success) {
-			                chaveEsperadaPlanilha = (res.chave || "").toUpperCase().trim();
-			            }
-			            lblTexto.textContent = 'Digite a Chave de Cadastro para o Operador "' + ol + ' (' + UF_SELECIONADA + ')":';
-			            btnConfirmar.disabled = false; 
-			        };
-			        callServer('obterChaveCadastroRealTime', { ol: ol, uf: UF_SELECIONADA }, 'cbObterChaveReal');
-			
-			        btnCancelar.onclick = function() {
-			            modalId.style.display = 'none';
-			            exibirAviso('msgCad', 'Cadastro cancelado pelo usuário.', 'error');
-			        };
-			
-			        btnConfirmar.onclick = function() {
-			            const chaveDigitada = inputCodigo.value.trim().toUpperCase();
-			            if (!chaveDigitada) {
-			                alert("Por favor, digite o ID de Cadastro.");
-			                return;
-			            }
-			
-			            if (chaveEsperadaPlanilha === "") {
-			                modalId.style.display = 'none';
-			                exibirAviso('msgCad', 'Acesso Negado: Parametrização operacional não localizada na base.', 'error');
-			                return;
-			            }
-			
-			            if (chaveDigitada !== chaveEsperadaPlanilha) {
-			                modalId.style.display = 'none';
-			                exibirAviso('msgCad', 'Acesso Negado: ID de Cadastro incorreto para esta localidade.', 'error');
-			                return;
-			            }
-			
-			            modalId.style.display = 'none';
-			            exibirAviso('msgCad', 'Registrando acesso...', 'loading');
-			            if (btnCadastrar) btnCadastrar.disabled = true;
-			
-			            // 2. CALLBACK DE REDE (Validação estrita de persistência)
-			            window.cbCadastro = (res) => {
-			                if (res && res.success === false) {
-			                    if (btnCadastrar) btnCadastrar.disabled = false;
-			                    return exibirAviso('msgCad', res.error || 'Erro ao processar o cadastro.', 'error');
-			                }
-			
-			                setTimeout(() => {
-			                    if (btnCadastrar) btnCadastrar.disabled = false;
-			                    exibirAviso('msgCad', 'Cadastro realizado com sucesso!', 'success');
-			                    
-			                    document.getElementById('cadNome').value = '';
-			                    document.getElementById('cadMatricula').value = '';
-			                    document.getElementById('cadEmail').value = '';
-			                    document.getElementById('cadSenha').value = '';
-			                    document.getElementById('cadSenhaRepete').value = '';
-			                    document.getElementById('cadOL').value = '';
-			                    
-			                    setTimeout(() => {
-			                        if (typeof voltarAoLogin === "function") voltarAoLogin();
-			                    }, 1500);
-			
-			                }, 1000); 
-			            };
-			        
-			            // Despacha a requisição para a rede
-			            callServer('salvarNovoUsuario', { nome, email, matricula, ol, senha, uf: UF_SELECIONADA, idCad: chaveDigitada }, 'cbCadastro');
-			        };
-			    }
-			} // <-- Fim da função
+    // 1. VALIDAÇÃO DE CAMPOS OPERACIONAIS OBRIGATÓRIOS
+    if (!nome || !matricula || !email || !ol || !senha) {
+        return exibirAviso('msgCad', 'Preencha todos os campos!', 'error');
+    }
+    if (senha !== senhaRepete) {
+        return exibirAviso('msgCad', 'As senhas não coincidem!', 'error');
+    }
+
+    // 🔐 VALIDAÇÃO DE COMPLEXIDADE CORPORATIVA DE SENHA
+    const regexComplexidade = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+    if (!regexComplexidade.test(senha)) {
+        return exibirAviso('msgCad', '🔒 Senha fraca! Use no mínimo 8 caracteres, incluindo pelo menos 1 letra maiúscula e 1 número.', 'error');
+    }
+
+    const modalId = document.getElementById('modalIdCad');
+    const lblTexto = document.getElementById('lblTextoIdCad');
+    const inputCodigo = document.getElementById('inputCodigoIdCad');
+    const btnConfirmar = document.getElementById('btnConfirmarIdCad');
+    const btnCancelar = document.getElementById('btnCancelarIdCad');
+
+    if (modalId && lblTexto && inputCodigo && btnConfirmar && btnCancelar) {
+        
+        lblTexto.textContent = 'Buscando chave de segurança para ' + ol + '...';
+        inputCodigo.value = '';
+        btnConfirmar.disabled = true; 
+        modalId.style.display = 'flex';
+
+        let chaveEsperadaPlanilha = "";
+        window.cbObterChaveReal = (res) => {
+            if (res && res.success) {
+                chaveEsperadaPlanilha = (res.chave || "").toUpperCase().trim();
+            }
+            lblTexto.textContent = 'Digite a Chave de Cadastro para o Operador "' + ol + ' (' + UF_SELECIONADA + ')":';
+            btnConfirmar.disabled = false; 
+        };
+        callServer('obterChaveCadastroRealTime', { ol: ol, uf: UF_SELECIONADA }, 'cbObterChaveReal');
+
+        btnCancelar.onclick = function() {
+            modalId.style.display = 'none';
+            exibirAviso('msgCad', 'Cadastro cancelado pelo usuário.', 'error');
+        };
+
+        btnConfirmar.onclick = function() {
+            const chaveDigitada = inputCodigo.value.trim().toUpperCase();
+            if (!chaveDigitada) {
+                alert("Por favor, digite o ID de Cadastro.");
+                return;
+            }
+
+            if (chaveEsperadaPlanilha === "") {
+                modalId.style.display = 'none';
+                exibirAviso('msgCad', 'Acesso Negado: Parametrização operacional não localizada na base.', 'error');
+                return;
+            }
+
+            if (chaveDigitada !== chaveEsperadaPlanilha) {
+                modalId.style.display = 'none';
+                exibirAviso('msgCad', 'Acesso Negado: ID de Cadastro incorreto para esta localidade.', 'error');
+                
+                // 🩹 INJEÇÃO CIRÚRGICA DE LOG: Erro de chave digitada incorretamente local
+                if (typeof dispararLogOL === 'function') {
+                    dispararLogOL('CADASTRO_OL_RECUSADO_LOCAL', `Tentativa de cadastro com Chave ID incorreta para o e-mail: [${email.toUpperCase()}] no Operador: [${ol.toUpperCase()}/${UF_SELECIONADA}]`);
+                }
+                return;
+            }
+
+            modalId.style.display = 'none';
+            exibirAviso('msgCad', 'Registrando acesso...', 'loading');
+            if (btnCadastrar) btnCadastrar.disabled = true;
+
+            // 🧠 CALLBACK DE REDE MONITORADO COM LOGS
+            window.cbCadastro = (res) => {
+                if (res && res.success === false) {
+                    if (btnCadastrar) btnCadastrar.disabled = false;
+                    
+                    // 🩹 INJEÇÃO CIRÚRGICA DE LOG: Cadastro rejeitado por validações do servidor (Ex: E-mail duplicado)
+                    if (typeof dispararLogOL === 'function') {
+                        dispararLogOL('CADASTRO_OL_RECUSADO', `Servidor rejeitou o registro do e-mail: [${email.toUpperCase()}]. Motivo: [${res.error || "Dados inválidos"}]`);
+                    }
+                    
+                    return exibirAviso('msgCad', res.error || 'Erro ao processar o cadastro.', 'error');
+                }
+
+                // SUCESSO REAL CONFIRMADO PELO SERVER
+                setTimeout(() => {
+                    if (btnCadastrar) btnCadastrar.disabled = false;
+                    
+                    // 🩹 INJEÇÃO CIRÚRGICA DE LOG: Sucesso absoluto de gravação de operador
+                    if (typeof dispararLogOL === 'function') {
+                        dispararLogOL('CADASTRO_OL_SUCESSO', `Novo operador cadastrado com sucesso: [${nome.toUpperCase()}] | E-mail/Login: [${email.toUpperCase()}] vinculado a: [${ol.toUpperCase()}/${UF_SELECIONADA}]`);
+                    }
+                    
+                    exibirAviso('msgCad', 'Cadastro realizado com sucesso!', 'success');
+                    
+                    document.getElementById('cadNome').value = '';
+                    document.getElementById('cadMatricula').value = '';
+                    document.getElementById('cadEmail').value = '';
+                    document.getElementById('cadSenha').value = '';
+                    document.getElementById('cadSenhaRepete').value = '';
+                    document.getElementById('cadOL').value = '';
+                    
+                    setTimeout(() => {
+                        if (typeof voltarAoLogin === "function") voltarAoLogin();
+                    }, 1500);
+
+                }, 1000); 
+            };
+        
+            // Despacha a requisição para a rede
+            callServer('salvarNovoUsuario', { nome, email, matricula, ol, senha, uf: UF_SELECIONADA, idCad: chaveDigitada }, 'cbCadastro');
+        };
+    }
+}
+ // <-- Fim da função
 
 
 
