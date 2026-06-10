@@ -3106,6 +3106,19 @@ window.addEventListener('beforeunload', function (event) {
 		
 		    callServer('getDadosImpressaoRomaneio', { romaneio: numRomaneio }, 'cbDadosImpressao');
 		}		
+
+		
+		function dispararLogOL(acao, detalhes) {
+		    const user = typeof usuarioLogado !== 'undefined' ? usuarioLogado : "DESCONHECIDO";
+		    // Dispara em background silencioso (Muda o callback para uma função vazia anônima)
+		    callServer('gravarLog', {
+		        origem: 'FRONT-OL',
+		        usuario: user,
+		        acao: acao,
+		        detalhes: detalhes
+		    }, 'String'); // Passa uma string vazia ou anônima para ignorar renderização na tela
+		}
+
 		
 </script>
 
